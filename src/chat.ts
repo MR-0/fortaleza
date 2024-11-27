@@ -97,7 +97,7 @@ export const chat = (): HTMLElement => {
 
       places.set(protagonist.place, summary)
 
-      console.log('status -->', status)
+      console.log('status -->', status, toJson(status))
       console.log('summary -->', summary)
     })
   const input = form.add('input').attrs({
@@ -107,4 +107,10 @@ export const chat = (): HTMLElement => {
   return container.dom
 }
 
+
+function toJson(str: string) {
+  str = str.replace(/^```json/, '')
+  str = str.replace(/$```/, '')
+  return JSON.parse(str)
+}
 
