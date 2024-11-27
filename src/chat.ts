@@ -8,19 +8,23 @@ const session = await ai.languageModel.create({
 })
 
 const places = new Map()
-const firstPlaceName = 'dark room'
-const firstPlaceText = (
-  'You wake up in a dark room. Slowly your eyes adjust to the dim light from the beam of the door.\n' +
-  'You hear footsteps, the beam of light becomes intermittent and you feel a paper slide under the door.'
-)
+const firstPlace = {
+  name: 'dark room',
+  items: 'paper',
+  previous: null,
+  situation: (
+    'You wake up in a dark room. Slowly your eyes adjust to the dim light from the beam of the door.\n' +
+    'You hear footsteps, the beam of light becomes intermittent and you feel a paper slide under the door.'
+  )
+}
 
-places.set(firstPlaceName, firstPlaceText)
+places.set(firstPlace.name, firstPlace)
 
 const protagonist = {
   healt: 100,
   madness: 0,
   inventory: 'nothing',
-  place: firstPlaceName,
+  place: firstPlace.name,
 }
 
 const questionText = 'What do you want to do?'
@@ -30,7 +34,7 @@ export const chat = (): HTMLElement => {
   const container = n('div').content(`
     <h1>Welcome to the old gods fortress</h1>
     <section>
-      <p>${current.split('\n').join('<br/>')}</p>
+      <p>${current.situation.split('\n').join('<br/>')}</p>
     </section>
   `)
   const response = container.add('section')
