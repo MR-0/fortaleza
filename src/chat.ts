@@ -85,6 +85,9 @@ export const chat = (): HTMLElement => {
         `The protagonist initial inventory is: "${protagonist.inventory}".\n` +
         `The protagonist initial place is: "${protagonist.place}".\n` +
         `After the following situation: "${fullResponse}".\n` +
+        `Updates the protagonist's healt dependig on the damage he has received in the current situation.` +
+        `Updates the protagonist's madness according to the difficulty of the situation.` +
+        `Updates the protagonist's inventory depending on what he has collected.` +
         `Answer in JSON format the following portagonist's aspects: ${Object.keys(protagonist).join(', ')}`
       )
 
