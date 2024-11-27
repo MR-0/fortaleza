@@ -78,7 +78,7 @@ export const chat = (): HTMLElement => {
 
       const summary = await session.prompt(`
         Sumarize the following text:
-        "${current.text}\n${fullResponse}"
+        "${current.situation}\n${fullResponse}"
       `)
 
       question.content(questionText)
