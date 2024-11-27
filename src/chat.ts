@@ -44,6 +44,7 @@ export const chat = (): HTMLElement => {
       e.preventDefault()
       const { value: prompt } = input.dom
       const current = places.get(protagonist.place)
+      const protagonistKeys = Object.keys(protagonist)
       const paragraph = response.add('p')
       const historyPrompt = (
         'You are the narrator of a old history of mistery and terror.\n' +
@@ -83,7 +84,7 @@ export const chat = (): HTMLElement => {
 
       question.content(questionText)
 
-      const status = await session.prompt(
+      const statusText = await session.prompt(
         `The protagonist initial healt is: "${protagonist.healt}".\n` +
         `The protagonist initial madness is: "${protagonist.madness}".\n` +
         `The protagonist initial inventory is: "${protagonist.inventory}".\n` +
@@ -92,12 +93,25 @@ export const chat = (): HTMLElement => {
         `Updates the protagonist's healt dependig on the damage he has received in the current situation.` +
         `Updates the protagonist's madness according to the difficulty of the situation.` +
         `Updates the protagonist's inventory depending on what he has collected.` +
-        `Answer in JSON format the following portagonist's aspects: ${Object.keys(protagonist).join(', ')}`
+        `Answer in JSON format the following portagonist's aspects: ${protagonistKeys.join(', ')}`
       )
+      const status = toJson(statusText)
+
+      if (protagonist.place === status.place && protagonist.madness === status.madness) {
+        status.madness += 1
+      }
+
+      if (status.place !== undefined && status.place !== protagonist.place) {
+        // create place
+      }
+
+      protagonistKeys.forEach((key) => {
+        protagonist[key] = status[key]
+      })
 
       places.set(protagonist.place, summary)
 
-      console.log('status -->', status, toJson(status))
+      console.log('status -->', statusText, status)
       console.log('summary -->', summary)
     })
   const input = form.add('input').attrs({
@@ -109,8 +123,15 @@ export const chat = (): HTMLElement => {
 
 
 function toJson(str: string) {
-  str = str.replace(/^```json/, '')
-  str = str.replace(/$```/, '')
-  return JSON.parse(str)
+  console.log('json inital ->', str)
+  str = str.replace(/^```json\s*/, '')
+  str = str.replace(/$\s*```/, '')
+  console.log('json final ->', str)
+  try {
+    return JSON.parse(str)
+  }
+  catch {
+    return {}
+  }
 }
 
