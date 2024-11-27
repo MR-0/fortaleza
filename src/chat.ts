@@ -1,17 +1,103 @@
+import { n } from './vnode'
 
+const ai = (window as any).ai
+const session = await ai.languageModel.create({
+  type: 'tl;dr',
+  format: 'plain-text',
+  length: 'short',
+})
+
+const places = new Map()
+const firstPlaceName = 'dark room'
+const firstPlaceText = (
+  'You wake up in a dark room. Slowly your eyes adjust to the dim light from the beam of the door.\n' +
+  'You hear footsteps, the beam of light becomes intermittent and you feel a paper slide under the door.'
+)
+
+places.set(firstPlaceName, firstPlaceText)
+
+const protagonist = {
+  healt: 100,
+  madness: 0,
+  inventory: 'nothing',
+  place: firstPlaceName,
+}
+
+const questionText = 'What do you want to do?'
 
 export const chat = (): HTMLElement => {
-  const container = document.createElement('div')
+  const current = places.get(protagonist.place)
+  const container = n('div').content(`
+    <h1>Welcome to the old gods fortress</h1>
+    <section>
+      <p>${current.split('\n').join('<br/>')}</p>
+    </section>
+  `)
+  const response = container.add('section')
+  const question = container.add('p').content(questionText)
+  const form = container.add('form')
+    .on('submit', async (e) => {
+      e.preventDefault()
+      const { value: prompt } = input.dom
+      const current = places.get(protagonist.place)
+      const paragraph = response.add('p')
+      const historyPrompt = (
+        'You are the narrator of a old history of mistery and terror.\n' +
+        'Always tells the story of the protagonist in the second person.\n' +
+        'Describes the actions and inner thoughts of the protagonist.\n' +
+        'Describes the place where the protagonist is.\n' +
+        // 'Make a short description.\n'+
+        `The protagonist current healt is: ${protagonist.healt} of 100.\n` +
+        `The protagonist current madness is: ${protagonist.madness} of 100.\n` +
+        `The protagonist current inventory is: "${protagonist.inventory}".\n` +
+        `The protagonist current place is: "${protagonist.place}".\n` +
+        'The current place has at least one exit.\n' +
+        'Keep the response short.\n' +
+        'Do not include questions in the response.\n' +
+        'Do not repeat the protagonist current situation.\n' +
+        `The protagonist current situation is: "${current.text}".\n` +
+        `Describe what happens after the following protagonist's action: ${prompt}.`
+      )
 
-  container.innerHTML = `
-    <p>Bienvenido a la fortaleza!</p>
-    <div>
-      <p>Acá van las descripciones</p>
-    </div>
-    <div>
-      <input type="text" />
-    </div>
-  `
+      input.dom.value = ''
 
-  return container
+      const stream = await session.promptStreaming(historyPrompt)
+      let fullResponse = ''
+
+      question.content('')
+      paragraph.content('...')
+
+      for await (const chunk of stream) {
+        fullResponse = chunk
+        paragraph.content(chunk.split('\n').join('<br/>'))
+      }
+
+      const summary = await session.prompt(`
+        Sumarize the following text:
+        "${current.text}\n${fullResponse}"
+      `)
+
+      question.content(questionText)
+
+      const status = await session.prompt(
+        `The protagonist initial healt is: "${protagonist.healt}".\n` +
+        `The protagonist initial madness is: "${protagonist.madness}".\n` +
+        `The protagonist initial inventory is: "${protagonist.inventory}".\n` +
+        `The protagonist initial place is: "${protagonist.place}".\n` +
+        `After the following situation: "${fullResponse}".\n` +
+        `Answer in JSON format the following portagonist's aspects: ${Object.keys(protagonist).join(', ')}`
+      )
+
+      places.set(protagonist.place, summary)
+
+      console.log('status -->', status)
+      console.log('summary -->', summary)
+    })
+  const input = form.add('input').attrs({
+    type: 'text'
+  })
+
+  return container.dom
 }
+
+
