@@ -34,7 +34,6 @@ const protagonist: Character = {
   place: firstPlace.name,
 }
 const questionText = 'What do you want to do?'
-const protagonistKeys = Object.keys(protagonist)
 const visited = new Set()
 
 places.set(firstPlace.name, firstPlace)
@@ -72,18 +71,7 @@ export const chat = (): HTMLElement => {
     current.situation = await summarizeSituation(session, protagonist, response)
     question.content(questionText)
 
-    const statusText = await session.prompt(
-      `The protagonist initial healt is: "${protagonist.healt}".\n` +
-      `The protagonist initial madness is: "${protagonist.madness}".\n` +
-      `The protagonist initial inventory is: "${protagonist.inventory}".\n` +
-      `The protagonist initial place is: "${protagonist.place}".\n` +
-      `After the following situation: "${response}".\n` +
-      `Decrease the protagonist's healt dependig on the damage he has received in the current situation.` +
-      `Increase the protagonist's madness according to the difficulty of the situation.` +
-      `Updates the protagonist's inventory depending on what he has collected or dropped.` +
-      `Answer in JSON format the following portagonist's aspects: ${protagonistKeys.join(', ')}`
-    )
-    const status = toJson(statusText)
+    const status = await getStatus(session, protagonist, response)
 
     if (protagonist.madness === status.madness) {
       status.madness += visited.has(status.place) ? 1 : -5
@@ -94,12 +82,12 @@ export const chat = (): HTMLElement => {
       // create place
     }
 
-    protagonistKeys.forEach((key) => {
+    Object.keys(protagonist).forEach((key) => {
       protagonist[key] = status[key]
     })
 
 
-    console.log('status -->', statusText, status)
+    console.log('status -->', status)
   })
 
   const input = form.add<HTMLInputElement>('input').attrs({
@@ -150,4 +138,24 @@ async function summarizeSituation(
   console.log('summary -->', summary)
 
   return summary
+}
+
+async function getStatus(
+  session: any,
+  protagonist: Character,
+  situation: string
+) {
+  const keys = Object.keys(protagonist)
+  const response = await session.prompt(
+    `The protagonist initial healt is: "${protagonist.healt}".\n` +
+    `The protagonist initial madness is: "${protagonist.madness}".\n` +
+    `The protagonist initial inventory is: "${protagonist.inventory}".\n` +
+    `The protagonist initial place is: "${protagonist.place}".\n` +
+    `After the following situation: "${situation}".\n` +
+    `Decrease the protagonist's healt dependig on the damage he has received in the current situation.` +
+    `Increase the protagonist's madness according to the difficulty of the situation.` +
+    `Updates the protagonist's inventory depending on what he has collected or dropped.` +
+    `Answer in JSON format the following portagonist's aspects: ${keys.join(', ')}`
+  )
+  return toJson(response)
 }
