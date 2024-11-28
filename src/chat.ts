@@ -1,5 +1,14 @@
 import { n } from './vnode'
 
+type Character = {
+  name?: string
+  motive?: string
+  madness?: number
+  healt: number
+  inventory: string
+  place: string
+}
+
 const ai = (window as any).ai
 const session = await ai.languageModel.create({
   type: 'tl;dr',
@@ -20,7 +29,7 @@ const firstPlace = {
 
 places.set(firstPlace.name, firstPlace)
 
-const protagonist = {
+const protagonist: Character = {
   healt: 100,
   madness: 0,
   inventory: 'nothing',
@@ -28,6 +37,7 @@ const protagonist = {
 }
 
 const questionText = 'What do you want to do?'
+const protagonistKeys = Object.keys(protagonist)
 
 export const chat = (): HTMLElement => {
   const current = places.get(protagonist.place)
@@ -39,81 +49,61 @@ export const chat = (): HTMLElement => {
   `)
   const response = container.add('section')
   const question = container.add('p').content(questionText)
-  const form = container.add('form')
-    .on('submit', async (e) => {
-      e.preventDefault()
-      const { value: prompt } = input.dom
-      const current = places.get(protagonist.place)
-      const protagonistKeys = Object.keys(protagonist)
-      const paragraph = response.add('p')
-      const historyPrompt = (
-        'You are the narrator of a old history of mistery and terror.\n' +
-        'Always tells the story of the protagonist in the second person.\n' +
-        'Describes the actions and inner thoughts of the protagonist.\n' +
-        'Describes the place where the protagonist is.\n' +
-        // 'Make a short description.\n'+
-        `The protagonist current healt is: ${protagonist.healt} of 100.\n` +
-        `The protagonist current madness is: ${protagonist.madness} of 100.\n` +
-        `The protagonist current inventory is: "${protagonist.inventory}".\n` +
-        `The protagonist current place is: "${protagonist.place}".\n` +
-        'The current place has at least one exit.\n' +
-        'Keep the response short.\n' +
-        'Do not include questions in the response.\n' +
-        'Do not repeat the protagonist current situation.\n' +
-        `The protagonist current situation is: "${current.situation}".\n` +
-        `Describe what happens after the following protagonist's action: ${prompt}.`
-      )
+  const form = container.add('form').on('submit', async (e) => {
+    e.preventDefault()
+    const { value: prompt } = input.dom
+    const current = places.get(protagonist.place)
+    const paragraph = response.add('p')
 
-      input.dom.value = ''
+    input.dom.value = ''
+    question.content('')
+    paragraph.content('...')
 
-      const stream = await session.promptStreaming(historyPrompt)
-      let fullResponse = ''
+    const stream = await getHistoryStream(session, protagonist, prompt)
+    let fullResponse = ''
 
-      question.content('')
-      paragraph.content('...')
+    for await (const chunk of stream) {
+      fullResponse = chunk
+      paragraph.content(chunk.split('\n').join('<br/>'))
+    }
 
-      for await (const chunk of stream) {
-        fullResponse = chunk
-        paragraph.content(chunk.split('\n').join('<br/>'))
-      }
+    const summary = await session.prompt(`
+      Sumarize the following text:
+      "${current.situation}\n${fullResponse}"
+    `)
 
-      const summary = await session.prompt(`
-        Sumarize the following text:
-        "${current.situation}\n${fullResponse}"
-      `)
+    question.content(questionText)
 
-      question.content(questionText)
+    const statusText = await session.prompt(
+      `The protagonist initial healt is: "${protagonist.healt}".\n` +
+      `The protagonist initial madness is: "${protagonist.madness}".\n` +
+      `The protagonist initial inventory is: "${protagonist.inventory}".\n` +
+      `The protagonist initial place is: "${protagonist.place}".\n` +
+      `After the following situation: "${fullResponse}".\n` +
+      `Decrease the protagonist's healt dependig on the damage he has received in the current situation.` +
+      `Increase the protagonist's madness according to the difficulty of the situation.` +
+      `Updates the protagonist's inventory depending on what he has collected or dropped.` +
+      `Answer in JSON format the following portagonist's aspects: ${protagonistKeys.join(', ')}`
+    )
+    const status = toJson(statusText)
 
-      const statusText = await session.prompt(
-        `The protagonist initial healt is: "${protagonist.healt}".\n` +
-        `The protagonist initial madness is: "${protagonist.madness}".\n` +
-        `The protagonist initial inventory is: "${protagonist.inventory}".\n` +
-        `The protagonist initial place is: "${protagonist.place}".\n` +
-        `After the following situation: "${fullResponse}".\n` +
-        `Decrease the protagonist's healt dependig on the damage he has received in the current situation.` +
-        `Increase the protagonist's madness according to the difficulty of the situation.` +
-        `Updates the protagonist's inventory depending on what he has collected or dropped.` +
-        `Answer in JSON format the following portagonist's aspects: ${protagonistKeys.join(', ')}`
-      )
-      const status = toJson(statusText)
+    if (protagonist.place === status.place && protagonist.madness === status.madness) {
+      status.madness += 1
+    }
 
-      if (protagonist.place === status.place && protagonist.madness === status.madness) {
-        status.madness += 1
-      }
+    if (status.place !== undefined && status.place !== protagonist.place) {
+      // create place
+    }
 
-      if (status.place !== undefined && status.place !== protagonist.place) {
-        // create place
-      }
-
-      protagonistKeys.forEach((key) => {
-        protagonist[key] = status[key]
-      })
-
-      places.set(protagonist.place, summary)
-
-      console.log('status -->', statusText, status)
-      console.log('summary -->', summary)
+    protagonistKeys.forEach((key) => {
+      protagonist[key] = status[key]
     })
+
+    places.set(protagonist.place, summary)
+
+    console.log('status -->', statusText, status)
+    console.log('summary -->', summary)
+  })
   const input = form.add<HTMLInputElement>('input').attrs({
     type: 'text'
   })
@@ -121,11 +111,38 @@ export const chat = (): HTMLElement => {
   return container.dom
 }
 
+async function getHistoryStream(
+  session: any,
+  protagonist: Character,
+  prompt: string,
+) {
+  const current = places.get(protagonist.place)
+  const historyPrompt = (
+    'You are the narrator of a old history of mistery and terror.\n' +
+    'Always tells the story of the protagonist in the second person.\n' +
+    'Describes the actions and inner thoughts of the protagonist.\n' +
+    'Describes the place where the protagonist is.\n' +
+    // 'Make a short description.\n'+
+    `The protagonist current healt is: ${protagonist.healt} of 100.\n` +
+    `The protagonist current madness is: ${protagonist.madness} of 100.\n` +
+    `The protagonist current inventory is: "${protagonist.inventory}".\n` +
+    `The protagonist current place is: "${protagonist.place}".\n` +
+    'The current place has at least one exit.\n' +
+    'Keep the response short.\n' +
+    'Do not include questions in the response.\n' +
+    'Do not repeat the protagonist current situation.\n' +
+    `The protagonist current situation is: "${current.situation}".\n` +
+    `Describe what happens after the following protagonist's action: ${prompt}.`
+  )
+
+  return await session.promptStreaming(historyPrompt)
+}
+
 
 function toJson(str: string) {
   console.log('json inital ->', str)
-  str = str.replace(/^```json\s*/, '')
-  str = str.replace(/$\s*```/, '')
+  str = str.replace(/^\s*```json\s*/, '')
+  str = str.replace(/$\s*```\s*/, '')
   console.log('json final ->', str)
   try {
     return JSON.parse(str)
