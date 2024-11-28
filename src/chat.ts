@@ -108,7 +108,8 @@ async function getHistoryStream(
   const historyPrompt = (
     'You are the narrator of a old history of mistery and terror.\n' +
     'Always tells the story of the protagonist in the second person.\n' +
-    'Describes the actions and inner thoughts of the protagonist.\n' +
+    // 'Describes the actions and inner thoughts of the protagonist.\n' +
+    'Describes the inner thoughts of the protagonist.\n' +
     'Describes the place where the protagonist is.\n' +
     // 'Make a short description.\n'+
     `The protagonist current healt is: ${protagonist.healt} of 100.\n` +
