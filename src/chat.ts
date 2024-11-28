@@ -20,7 +20,7 @@ const session = await ai.languageModel.create({
 const places = new Map()
 const firstPlace = {
   name: 'dark room',
-  items: 'paper',
+  objects: 'paper',
   previous: null,
   situation: (
     'You wake up in a dark room. Slowly your eyes adjust to the dim light from the beam of the door.\n' +
@@ -79,7 +79,9 @@ export const chat = (): HTMLElement => {
     }
 
     if (status.place !== undefined && status.place !== protagonist.place) {
-      // create place
+      const place = await createPlace(session, status.place, current.name)
+      places.set(place.name, place)
+      console.log('new place -->', place)
     }
 
     Object.keys(protagonist).forEach((key) => {
@@ -158,4 +160,29 @@ async function getStatus(
     `Answer in JSON format the following portagonist's aspects: ${keys.join(', ')}`
   )
   return toJson(response)
+}
+
+async function createPlace(
+  session: any,
+  name: string,
+  previous: string
+) {
+  const situation = await session.prompt(
+    `Describe the following place: "${name}".\n` +
+    'Keep the response short.\n' +
+    'Do not include questions in the response.\n'
+  )
+  const objects = await getPlaceObjects(session, situation)
+
+  return { name, objects, previous, situation }
+}
+
+async function getPlaceObjects(
+  session: any,
+  situation: string
+) {
+  return await session.prompt(
+    `Given the following description: "${situation}".\n` +
+    `List all the objects in the place separated by comma.`
+  )
 }
