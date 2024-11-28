@@ -60,7 +60,7 @@ export const chat = (): HTMLElement => {
         'Keep the response short.\n' +
         'Do not include questions in the response.\n' +
         'Do not repeat the protagonist current situation.\n' +
-        `The protagonist current situation is: "${current.text}".\n` +
+        `The protagonist current situation is: "${current.situation}".\n` +
         `Describe what happens after the following protagonist's action: ${prompt}.`
       )
 
@@ -90,9 +90,9 @@ export const chat = (): HTMLElement => {
         `The protagonist initial inventory is: "${protagonist.inventory}".\n` +
         `The protagonist initial place is: "${protagonist.place}".\n` +
         `After the following situation: "${fullResponse}".\n` +
-        `Updates the protagonist's healt dependig on the damage he has received in the current situation.` +
-        `Updates the protagonist's madness according to the difficulty of the situation.` +
-        `Updates the protagonist's inventory depending on what he has collected.` +
+        `Decrease the protagonist's healt dependig on the damage he has received in the current situation.` +
+        `Increase the protagonist's madness according to the difficulty of the situation.` +
+        `Updates the protagonist's inventory depending on what he has collected or dropped.` +
         `Answer in JSON format the following portagonist's aspects: ${protagonistKeys.join(', ')}`
       )
       const status = toJson(statusText)
@@ -114,7 +114,7 @@ export const chat = (): HTMLElement => {
       console.log('status -->', statusText, status)
       console.log('summary -->', summary)
     })
-  const input = form.add('input').attrs({
+  const input = form.add<HTMLInputElement>('input').attrs({
     type: 'text'
   })
 
