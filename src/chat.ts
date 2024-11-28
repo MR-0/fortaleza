@@ -27,18 +27,16 @@ const firstPlace = {
     'You hear footsteps, the beam of light becomes intermittent and you feel a paper slide under the door.'
   )
 }
-
-places.set(firstPlace.name, firstPlace)
-
 const protagonist: Character = {
   healt: 100,
   madness: 0,
   inventory: 'nothing',
   place: firstPlace.name,
 }
-
 const questionText = 'What do you want to do?'
 const protagonistKeys = Object.keys(protagonist)
+
+places.set(firstPlace.name, firstPlace)
 
 export const chat = (): HTMLElement => {
   const current = places.get(protagonist.place)
@@ -48,31 +46,29 @@ export const chat = (): HTMLElement => {
       <p>${current.situation.split('\n').join('<br/>')}</p>
     </section>
   `)
-  const response = container.add('section')
+  const history = container.add('section')
   const question = container.add('p').content(questionText)
   const form = container.add('form').on('submit', async (e) => {
     e.preventDefault()
     const { value: prompt } = input.dom
     const current = places.get(protagonist.place)
-    const paragraph = response.add('p')
+    const protagonistParagraph = history.add('p')
+    const responseParagraph = history.add('p')
 
     input.dom.value = ''
     question.content('')
-    paragraph.content('...')
+    protagonistParagraph.content(prompt)
+    responseParagraph.content('...')
 
     const stream = await getHistoryStream(session, protagonist, prompt)
-    let fullResponse = ''
+    let response = ''
 
     for await (const chunk of stream) {
-      fullResponse = chunk
-      paragraph.content(chunk.split('\n').join('<br/>'))
+      response = chunk
+      responseParagraph.content(chunk.split('\n').join('<br/>'))
     }
 
-    const summary = await session.prompt(`
-      Sumarize the following text:
-      "${current.situation}\n${fullResponse}"
-    `)
-
+    current.situation = await summarizeSituation(session, protagonist, response)
     question.content(questionText)
 
     const statusText = await session.prompt(
@@ -80,7 +76,7 @@ export const chat = (): HTMLElement => {
       `The protagonist initial madness is: "${protagonist.madness}".\n` +
       `The protagonist initial inventory is: "${protagonist.inventory}".\n` +
       `The protagonist initial place is: "${protagonist.place}".\n` +
-      `After the following situation: "${fullResponse}".\n` +
+      `After the following situation: "${response}".\n` +
       `Decrease the protagonist's healt dependig on the damage he has received in the current situation.` +
       `Increase the protagonist's madness according to the difficulty of the situation.` +
       `Updates the protagonist's inventory depending on what he has collected or dropped.` +
@@ -100,10 +96,8 @@ export const chat = (): HTMLElement => {
       protagonist[key] = status[key]
     })
 
-    places.set(protagonist.place, summary)
 
     console.log('status -->', statusText, status)
-    console.log('summary -->', summary)
   })
   const input = form.add<HTMLInputElement>('input').attrs({
     type: 'text'
@@ -137,4 +131,20 @@ async function getHistoryStream(
   )
 
   return await session.promptStreaming(historyPrompt)
+}
+
+async function summarizeSituation(
+  session: any,
+  protagonist: Character,
+  situation: string
+) {
+  const current = places.get(protagonist.place)
+  const summary = await session.prompt(`
+    Sumarize the following text:
+    "${current.situation}\n${situation}"
+  `)
+
+  console.log('summary -->', summary)
+
+  return summary
 }
