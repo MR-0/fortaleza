@@ -35,6 +35,7 @@ const protagonist: Character = {
 }
 const questionText = 'What do you want to do?'
 const protagonistKeys = Object.keys(protagonist)
+const visited = new Set()
 
 places.set(firstPlace.name, firstPlace)
 
@@ -84,8 +85,9 @@ export const chat = (): HTMLElement => {
     )
     const status = toJson(statusText)
 
-    if (protagonist.place === status.place && protagonist.madness === status.madness) {
-      status.madness += 1
+    if (protagonist.madness === status.madness) {
+      status.madness += visited.has(status.place) ? 1 : -5
+      status.madness = Math.max(status.madness, 0)
     }
 
     if (status.place !== undefined && status.place !== protagonist.place) {
@@ -99,6 +101,7 @@ export const chat = (): HTMLElement => {
 
     console.log('status -->', statusText, status)
   })
+
   const input = form.add<HTMLInputElement>('input').attrs({
     type: 'text'
   })
