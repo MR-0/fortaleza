@@ -1,8 +1,8 @@
-export class VirtualNode {
-  private _dom
+export class VirtualNode<T extends HTMLElement = HTMLElement> {
+  private _dom: T
 
   constructor(tag: string) {
-    this._dom = document.createElement(tag)
+    this._dom = document.createElement(tag) as T
   }
 
   get dom() {
@@ -40,13 +40,13 @@ export class VirtualNode {
     return this
   }
 
-  add(tag: string) {
-    const node = new VirtualNode(tag)
+  add<T extends HTMLElement = HTMLElement>(tag: string) {
+    const node = new VirtualNode<T>(tag)
     this._dom.appendChild(node.dom)
     return node
   }
 }
 
-export function n(tag: string): VirtualNode {
-  return new VirtualNode(tag)
+export function n<T extends HTMLElement = HTMLElement>(tag: string): VirtualNode {
+  return new VirtualNode<T>(tag)
 }
