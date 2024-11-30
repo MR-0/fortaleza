@@ -5,7 +5,6 @@ type Character = {
   name?: string
   motive?: string
   madness?: number
-  healt: number
   inventory: string
   place: string
 }
@@ -28,7 +27,6 @@ const firstPlace = {
   )
 }
 const protagonist: Character = {
-  healt: 100,
   madness: 0,
   inventory: 'nothing',
   place: firstPlace.name,
@@ -112,7 +110,6 @@ async function getHistoryStream(
     'Describes the inner thoughts of the protagonist.\n' +
     'Describes the place where the protagonist is.\n' +
     // 'Make a short description.\n'+
-    `The protagonist current healt is: ${protagonist.healt} of 100.\n` +
     `The protagonist current madness is: ${protagonist.madness} of 100.\n` +
     `The protagonist current inventory is: "${protagonist.inventory}".\n` +
     `The protagonist current place is: "${protagonist.place}".\n` +
@@ -150,14 +147,13 @@ async function getStatus(
 ) {
   const keys = Object.keys(protagonist)
   const response = await session.prompt(
-    `The protagonist initial healt is: "${protagonist.healt}".\n` +
     `The protagonist initial madness is: "${protagonist.madness}".\n` +
     `The protagonist initial inventory is: "${protagonist.inventory}".\n` +
     `The protagonist initial place is: "${protagonist.place}".\n` +
     `After the following situation: "${situation}".\n` +
-    `Decrease the protagonist's healt dependig on the damage he has received in the current situation.` +
-    `Increase the protagonist's madness according to the difficulty of the situation.` +
+    `Updates the protagonist's madness according to the difficulty of the situation.` +
     `Updates the protagonist's inventory depending on what he has collected or dropped.` +
+    `Updates the protagonist's place depending on what he did.` +
     `Answer in JSON format the following portagonist's aspects: ${keys.join(', ')}`
   )
   return toJson(response)
