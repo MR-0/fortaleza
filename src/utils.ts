@@ -12,3 +12,7 @@ export function toJson(str: string) {
   }
 }
 
+export function paragraphText(text: string) {
+  return `<p>${text.split('\n').join('</p>\n<p>')}</p>`
+}
+

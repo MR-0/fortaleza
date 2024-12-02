@@ -1,5 +1,5 @@
 import { n } from './vnode'
-import { toJson } from './utils'
+import { toJson, paragraphText } from './utils'
 import style from './main.module.css'
 import titleSvg from '../assets/title.svg?raw'
 import flourishSvg from '../assets/flourish.svg?raw'
@@ -10,6 +10,7 @@ type Character = {
   madness?: number
   inventory: string
   place: string
+  [k: string]: any
 }
 
 const ai = (window as any).ai
@@ -25,8 +26,8 @@ const firstPlace = {
   objects: 'paper',
   previous: null,
   situation: (
-    'You wake up in a dark room. Slowly your eyes adjust to the dim light from the beam of the door.\n' +
-    'You hear footsteps, the beam of light becomes intermittent and you feel a paper slide under the door.'
+    'You wake up in a dark room. Slowly your eyes adjust to the dim light. ' +
+    'You hear footsteps and someone or something slide a paper under the door.'
   )
 }
 const protagonist: Character = {
@@ -34,39 +35,34 @@ const protagonist: Character = {
   inventory: 'nothing',
   place: firstPlace.name,
 }
-const questionText = 'What do you want to do?'
 const visited = new Set()
 
 places.set(firstPlace.name, firstPlace)
 
-export const chat = (): HTMLElement => {
+export const chat = (): DocumentFragment => {
+  const fragment = new DocumentFragment()
   const current = places.get(protagonist.place)
-  const container = n('div')
+  const paperContainer = n('div')
     .class(style.paper)
     .content(`
-    <h1 class="hidde">Welcome to the old gods fortress</h1>
+    <h1 class="hidden">Welcome to the old gods fortress</h1>
     <div class="${style.paperBackground}">
       <img src="/assets/paper.png" alt="paper background"/>
     </div>
     <div class="${style.flourish} ${style.flourishTop}">${flourishSvg}</div>
     <div class="${style.title}">${titleSvg}</div>
     <div class="${style.flourish} ${style.flourishBottom}">${flourishSvg}</div>
-    <section>
-      <p>${current.situation.split('\n').join('<br/>')}</p>
-    </section>
   `)
-  const history = container.add('section')
-  const question = container.add('p').content(questionText)
-  const form = container.add('form').on('submit', async (e) => {
+  const history = paperContainer.add('section')
+  const form = n('form').on('submit', async (e) => {
     e.preventDefault()
     const { value: prompt } = input.dom
     const current = places.get(protagonist.place)
-    const protagonistParagraph = history.add('p')
-    const responseParagraph = history.add('p')
+    const protagonistParagraph = history.add('div')
+    const responseParagraph = history.add('div')
 
     input.dom.value = ''
-    question.content('')
-    protagonistParagraph.content(prompt)
+    protagonistParagraph.content(paragraphText(prompt))
     responseParagraph.content('...')
 
     const stream = await getHistoryStream(session, protagonist, prompt)
@@ -74,11 +70,10 @@ export const chat = (): HTMLElement => {
 
     for await (const chunk of stream) {
       response = chunk
-      responseParagraph.content(chunk.split('\n').join('<br/>'))
+      responseParagraph.content(paragraphText(chunk))
     }
 
     current.situation = await summarizeSituation(session, protagonist, response)
-    question.content(questionText)
 
     const status = await getStatus(session, protagonist, response)
 
@@ -101,11 +96,23 @@ export const chat = (): HTMLElement => {
     console.log('status -->', status)
   })
 
+  history.add('h2')
+    .class('hidden')
+    .content('History')
+  history.add('div')
+    .content(paragraphText(current.situation))
+
+  form.add('p')
+    .content('What do you want to do?')
+
   const input = form.add<HTMLInputElement>('input').attrs({
     type: 'text'
   })
 
-  return container.dom
+  fragment.appendChild(paperContainer.dom)
+  fragment.appendChild(form.dom)
+
+  return fragment
 }
 
 async function getHistoryStream(

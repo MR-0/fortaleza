@@ -68,7 +68,7 @@ body {
   z-index: 10;
 }
 
-.hidde {
+.hidden {
   display: block;
   color: transparent;
   overflow: hidden;
