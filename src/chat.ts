@@ -1,4 +1,5 @@
 import { n } from './vnode'
+import { ChatInput } from './chatInput'
 import { toJson, paragraphText } from './utils'
 import style from './main.module.css'
 import titleSvg from '../assets/title.svg?raw'
@@ -54,14 +55,13 @@ export const chat = (): DocumentFragment => {
     <div class="${style.flourish} ${style.flourishBottom}">${flourishSvg}</div>
   `)
   const history = paperContainer.add('section')
-  const form = n('form').on('submit', async (e) => {
-    e.preventDefault()
-    const { value: prompt } = input.dom
+  const form = new ChatInput()
+
+  form.submit(async (prompt) => {
     const current = places.get(protagonist.place)
     const protagonistParagraph = history.add('div')
     const responseParagraph = history.add('div')
 
-    input.dom.value = ''
     protagonistParagraph.content(paragraphText(prompt))
     responseParagraph.content('...')
 
@@ -92,7 +92,6 @@ export const chat = (): DocumentFragment => {
       protagonist[key] = status[key]
     })
 
-
     console.log('status -->', status)
   })
 
@@ -101,13 +100,6 @@ export const chat = (): DocumentFragment => {
     .content('History')
   history.add('div')
     .content(paragraphText(current.situation))
-
-  form.add('p')
-    .content('What do you want to do?')
-
-  const input = form.add<HTMLInputElement>('input').attrs({
-    type: 'text'
-  })
 
   fragment.appendChild(paperContainer.dom)
   fragment.appendChild(form.dom)
