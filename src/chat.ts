@@ -1,6 +1,6 @@
 import { n } from './vnode'
 import { ChatInput } from './chatInput'
-import { toJson, paragraphText } from './utils'
+import { toJson, paragraphText, autoScroll } from './utils'
 import style from './main.module.css'
 import titleSvg from '../assets/title.svg?raw'
 import flourishSvg from '../assets/flourish.svg?raw'
@@ -71,10 +71,7 @@ export const chat = (): DocumentFragment => {
     protagonistParagraph.content(paragraphText(prompt))
     responseParagraph.content('...')
 
-    window.scrollTo({
-      top: window.innerHeight,
-      behavior: 'smooth'
-    })
+    autoScroll()
 
     const stream = await getHistoryStream(session, protagonist, prompt)
     let response = ''
@@ -82,10 +79,7 @@ export const chat = (): DocumentFragment => {
     for await (const chunk of stream) {
       response = chunk
       responseParagraph.content(paragraphText(chunk))
-      window.scrollTo({
-        top: window.innerHeight,
-        behavior: 'smooth'
-      })
+      autoScroll()
     }
 
     if (current) {
@@ -107,10 +101,7 @@ export const chat = (): DocumentFragment => {
       for await (const chunk of placeStream) {
         placeSituation = chunk
         placeParagraph.content(paragraphText(chunk))
-        window.scrollTo({
-          top: window.innerHeight,
-          behavior: 'smooth'
-        })
+        autoScroll()
       }
 
       const objects = await getPlaceObjects(session, placeSituation)

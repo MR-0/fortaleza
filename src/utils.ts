@@ -16,3 +16,10 @@ export function paragraphText(text: string) {
   return `<p>${text.split('\n').join('</p>\n<p>')}</p>`
 }
 
+export function autoScroll() {
+  window.scrollTo({
+    top: document.body.clientHeight,
+    behavior: 'smooth'
+  })
+}
+
