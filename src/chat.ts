@@ -1,5 +1,8 @@
 import { n } from './vnode'
 import { toJson } from './utils'
+import style from './main.module.css'
+import titleSvg from '../assets/title.svg?raw'
+import flourishSvg from '../assets/flourish.svg?raw'
 
 type Character = {
   name?: string
@@ -38,8 +41,16 @@ places.set(firstPlace.name, firstPlace)
 
 export const chat = (): HTMLElement => {
   const current = places.get(protagonist.place)
-  const container = n('div').content(`
-    <h1>Welcome to the old gods fortress</h1>
+  const container = n('div')
+    .class(style.paper)
+    .content(`
+    <h1 class="hidde">Welcome to the old gods fortress</h1>
+    <div class="${style.paperBackground}">
+      <img src="/assets/paper.png" alt="paper background"/>
+    </div>
+    <div class="${style.flourish} ${style.flourishTop}">${flourishSvg}</div>
+    <div class="${style.title}">${titleSvg}</div>
+    <div class="${style.flourish} ${style.flourishBottom}">${flourishSvg}</div>
     <section>
       <p>${current.situation.split('\n').join('<br/>')}</p>
     </section>

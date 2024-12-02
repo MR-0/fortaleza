@@ -1,0 +1,62 @@
+.paper {
+  flex: 1 0 100%;
+  padding: 25px 50px;
+  padding-bottom: 150px;
+  color: #621;
+}
+
+.paperBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  z-index: -1;
+}
+
+.paperBackground::before {
+  content: "";
+  flex: 0 1 100%;
+  background-color: #E7E5E2;
+}
+
+.paperBackground img {
+  flex: 0 0 auto;
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: -3px;
+  margin-bottom: 3px;
+}
+
+.title {
+  width: 80%;
+  margin: 0 auto;
+}
+
+.flourish path,
+.flourish line {
+  fill: none;
+  stroke: #621;
+  stroke-miterlimit: 10;
+}
+
+.flourishTop {
+  width: 33%;
+  margin: 20vh auto 20px;
+}
+
+.flourishBottom {
+  width: 33%;
+  margin: 25px auto 50px;
+  transform: rotate(180deg);
+}
+
+.title svg,
+.flourish svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
