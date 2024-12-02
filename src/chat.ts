@@ -13,6 +13,12 @@ type Character = {
   place: string
   [k: string]: any
 }
+type Place = {
+  name: string
+  objects: string
+  situation: string
+  previous: string[]
+}
 
 const ai = (window as any).ai
 const session = await ai.languageModel.create({
@@ -21,15 +27,15 @@ const session = await ai.languageModel.create({
   length: 'short',
 })
 
-const places = new Map()
-const firstPlace = {
+const places = new Map<string, Place>()
+const firstPlace: Place = {
   name: 'dark room',
   objects: 'paper',
-  previous: null,
   situation: (
     'You wake up in a dark room. Slowly your eyes adjust to the dim light. ' +
     'You hear footsteps and someone or something slide a paper under the door.'
-  )
+  ),
+  previous: []
 }
 const protagonist: Character = {
   madness: 0,
@@ -82,19 +88,41 @@ export const chat = (): DocumentFragment => {
       })
     }
 
-    current.situation = await summarizeSituation(session, protagonist, response)
+    if (current) {
+      current.situation = await summarizeSituation(session, protagonist, response)
+    }
 
     const status = await getStatus(session, protagonist, response)
 
     if (protagonist.madness === status.madness) {
-      status.madness += visited.has(status.place) ? 1 : -5
+      status.madness += visited.has(status.place) ? 1 : -10
       status.madness = Math.max(status.madness, 0)
     }
 
-    if (status.place !== undefined && status.place !== protagonist.place) {
-      const place = await createPlace(session, status.place, current.name)
-      places.set(place.name, place)
-      console.log('new place -->', place)
+    if (current && status.place !== undefined && status.place !== protagonist.place) {
+      const placeStream = await createPlaceStream(session, status.place, current)
+      const placeParagraph = history.add('div')
+      let placeSituation = ''
+
+      for await (const chunk of placeStream) {
+        placeSituation = chunk
+        placeParagraph.content(paragraphText(chunk))
+        window.scrollTo({
+          top: window.innerHeight,
+          behavior: 'smooth'
+        })
+      }
+
+      const objects = await getPlaceObjects(session, placeSituation)
+
+      places.set(status.place, {
+        name: status.place,
+        previous: [protagonist.place],
+        situation: placeSituation,
+        objects
+      })
+
+      console.log('new place -->', placeSituation)
     }
 
     Object.keys(protagonist).forEach((key) => {
@@ -108,7 +136,7 @@ export const chat = (): DocumentFragment => {
     .class('hidden')
     .content('History')
   history.add('div')
-    .content(paragraphText(current.situation))
+    .content(current ? paragraphText(current.situation) : '')
 
   fragment.appendChild(paperContainer.dom)
   fragment.appendChild(form.dom)
@@ -122,6 +150,9 @@ async function getHistoryStream(
   prompt: string,
 ) {
   const current = places.get(protagonist.place)
+
+  if (!current) return ''
+
   const historyPrompt = (
     'You are the narrator of a old history of mistery and terror.\n' +
     'Always tells the story of the protagonist in the second person.\n' +
@@ -149,6 +180,9 @@ async function summarizeSituation(
   situation: string
 ) {
   const current = places.get(protagonist.place)
+
+  if (!current) return ''
+
   const summary = await session.prompt(`
     Sumarize the following text:
     "${current.situation}\n${situation}"
@@ -178,19 +212,18 @@ async function getStatus(
   return toJson(response)
 }
 
-async function createPlace(
+async function createPlaceStream(
   session: any,
   name: string,
-  previous: string
+  previous: Place
 ) {
-  const situation = await session.prompt(
+  return await session.promptStreaming(
     `Describe the following place: "${name}".\n` +
+    `Take into consideration the previous situarion: "${previous.situation}".\n` +
+    'Always describe the place of the protagonist in the second person.\n' +
     'Keep the response short.\n' +
     'Do not include questions in the response.\n'
   )
-  const objects = await getPlaceObjects(session, situation)
-
-  return { name, objects, previous, situation }
 }
 
 async function getPlaceObjects(
@@ -199,6 +232,6 @@ async function getPlaceObjects(
 ) {
   return await session.prompt(
     `Given the following description: "${situation}".\n` +
-    `List all the objects in the place separated by comma.`
+    `List all the objects in the current place.`
   )
 }
