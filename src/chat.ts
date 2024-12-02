@@ -65,12 +65,21 @@ export const chat = (): DocumentFragment => {
     protagonistParagraph.content(paragraphText(prompt))
     responseParagraph.content('...')
 
+    window.scrollTo({
+      top: window.innerHeight,
+      behavior: 'smooth'
+    })
+
     const stream = await getHistoryStream(session, protagonist, prompt)
     let response = ''
 
     for await (const chunk of stream) {
       response = chunk
       responseParagraph.content(paragraphText(chunk))
+      window.scrollTo({
+        top: window.innerHeight,
+        behavior: 'smooth'
+      })
     }
 
     current.situation = await summarizeSituation(session, protagonist, response)
