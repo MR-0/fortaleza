@@ -1,6 +1,6 @@
 import { n } from './vnode'
 import { ChatInput } from './chatInput'
-import { toJson, paragraphText, autoScroll, unique, randomPick } from './utils'
+import { toJson, paragraphText, autoScroll, unique, randomPick, fakeStream } from './utils'
 import style from './main.module.css'
 import titleSvg from '../assets/title.svg?raw'
 import flourishSvg from '../assets/flourish.svg?raw'
@@ -42,9 +42,10 @@ const protagonist: Character = {
   inventory: [],
   place: firstPlace.name,
 }
-const visited = new Set()
+const visited = new Set<string>()
 
 places.set(firstPlace.name, firstPlace)
+visited.add(firstPlace.name)
 
 export const chat = (): DocumentFragment => {
   const fragment = new DocumentFragment()
@@ -52,7 +53,7 @@ export const chat = (): DocumentFragment => {
   const paperContainer = n('div')
     .class(style.paper)
     .content(`
-    <h1 class="hidden">Welcome to the old gods fortress</h1>
+    <h1 class="hidden">Welcome to the maze of madness</h1>
     <div class="${style.paperBackground}">
       <img src="/assets/paper.png" alt="paper background"/>
     </div>
@@ -95,12 +96,15 @@ export const chat = (): DocumentFragment => {
     const status = await getStatus(session, protagonist, response)
 
     if (protagonist.madness === status.madness) {
-      status.madness += visited.has(status.place) ? 1 : -10
+      status.madness += visited.has(status.place) ? 1 : -5
       status.madness = Math.max(status.madness, 0)
     }
 
     if (current && status.place !== undefined && status.place !== protagonist.place) {
-      const placeStream = await createPlaceStream(session, status.place, current)
+      const created = places.get(status.place)
+      const placeStream = created
+        ? fakeStream(created.situation)
+        : await createPlaceStream(session, status.place, current)
       const placeParagraph = history.add('div')
       let placeSituation = ''
 
@@ -112,12 +116,19 @@ export const chat = (): DocumentFragment => {
 
       const objects = await getPlaceObjects(session, placeSituation)
 
-      places.set(status.place, {
-        name: status.place,
-        previous: [protagonist.place],
-        situation: placeSituation,
-        objects
-      })
+      if (created) {
+        created.previous = unique([...created.previous, protagonist.place])
+      }
+      else {
+        places.set(status.place, {
+          name: status.place,
+          previous: [protagonist.place],
+          situation: placeSituation,
+          objects
+        })
+      }
+
+      visited.add(status.place)
 
       console.log('new place -->', placeSituation)
     }
