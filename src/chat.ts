@@ -63,6 +63,12 @@ export const chat = (): DocumentFragment => {
   const history = paperContainer.add('section')
   const form = new ChatInput()
 
+  history.add('h2')
+    .class('hidden')
+    .content('History')
+  history.add('div')
+    .content(current ? paragraphText(current.situation) : '')
+
   form.submit(async (prompt) => {
     const current = places.get(protagonist.place)
     const protagonistParagraph = history.add('div')
@@ -123,12 +129,6 @@ export const chat = (): DocumentFragment => {
     console.log('status -->', status)
   })
 
-  history.add('h2')
-    .class('hidden')
-    .content('History')
-  history.add('div')
-    .content(current ? paragraphText(current.situation) : '')
-
   fragment.appendChild(paperContainer.dom)
   fragment.appendChild(form.dom)
 
@@ -152,12 +152,9 @@ async function getHistoryStream(
   else if (madness >= 50) {
     hallucinations = 'Describes the protagonist\'s hallucinations.\n'
   }
-  const innerThoughts = !hallucinations && Math.random() >= 0.5
+  const innerThoughts = madness >= 30 && Math.random() >= 0.5
     ? 'Describes the inner thoughts of the protagonist.\n'
     : ''
-  const inventory = Array.isArray(protagonist.inventory)
-    ? protagonist.inventory.join(', ')
-    : protagonist.inventory
 
   if (!current) return ''
 
@@ -169,15 +166,15 @@ async function getHistoryStream(
     innerThoughts +
     'Describes the place where the protagonist is.\n' +
     // 'Make a short description.\n'+
-    `The protagonist current madness is: ${protagonist.madness} of 100.\n` +
-    `The protagonist current inventory is: "${inventory}".\n` +
-    `The protagonist current place is: "${protagonist.place}".\n` +
-    'The current place has at least one exit.\n' +
+    // `The protagonist current madness is: ${protagonist.madness} of 100.\n` +
+    // `The protagonist current inventory is: "${inventory}".\n` +
+    // `The protagonist current place is: "${protagonist.place}".\n` +
     'Always keep the response short.\n' +
     'Do not include questions in the response.\n' +
+    'Do not ask waht do you do to the protagonist.\n' +
     'Do not include recomendations in the response.\n' +
     'Do not repeat the protagonist current situation.\n' +
-    'Never ask waht do you do to the protagonist.\n' +
+    'Do not repeat previous descriptions.\n' +
     'Do not take the protagonist initiative.\n' +
     `The protagonist current situation is: "${current.situation}".\n` +
     `Describe only what happens after the following protagonist's action: ${prompt}.`
@@ -248,8 +245,8 @@ async function createPlaceStream(
     `Take into consideration the previous situarion: "${previous.situation}".\n` +
     'Always describe the place of the protagonist in the second person.\n' +
     `There are ${exits} ways out from this place, one is from where the protagonist comes.\n` +
-    'Keep the response short.\n' +
-    'Do not include questions in the response.\n'
+    'Do not include questions in the response.\n' +
+    'Keep the response short.'
   )
 }
 
