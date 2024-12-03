@@ -31,3 +31,22 @@ export function randomPick(arr: any[]) {
   const i = Math.round((arr.length - 1) * Math.random())
   return arr[i]
 }
+
+export function fakeStream(str: string, delay = 100) {
+  const arr = str.split(' ').reverse()
+  const acc: string[] = []
+  return new ReadableStream({
+    start(controller) {
+      const interval = setInterval(() => {
+        const val = arr.pop()
+        if (val) acc.push(val)
+        if (arr.length) controller.enqueue(acc.join(' '))
+        else {
+          controller.enqueue(acc.join(' '))
+          controller.close()
+          clearInterval(interval)
+        }
+      }, delay)
+    }
+  })
+}
