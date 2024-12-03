@@ -141,6 +141,7 @@ async function getHistoryStream(
   prompt: string,
 ) {
   const current = places.get(protagonist.place)
+  const hasInnerThoughts = Math.random() >= 0.5;
 
   if (!current) return ''
 
@@ -148,18 +149,20 @@ async function getHistoryStream(
     'You are the narrator of a old history of mistery and terror.\n' +
     'Always tells the story of the protagonist in the second person.\n' +
     // 'Describes the actions and inner thoughts of the protagonist.\n' +
-    'Describes the inner thoughts of the protagonist.\n' +
+    (hasInnerThoughts ? 'Describes the inner thoughts of the protagonist.\n' : '') +
     'Describes the place where the protagonist is.\n' +
     // 'Make a short description.\n'+
     `The protagonist current madness is: ${protagonist.madness} of 100.\n` +
     `The protagonist current inventory is: "${protagonist.inventory}".\n` +
     `The protagonist current place is: "${protagonist.place}".\n` +
     'The current place has at least one exit.\n' +
-    'Keep the response short.\n' +
+    'Always keep the response short.\n' +
     'Do not include questions in the response.\n' +
+    'Do not include recomendations in the response.\n' +
     'Do not repeat the protagonist current situation.\n' +
+    'Do not take the protagonist initiative.\n' +
     `The protagonist current situation is: "${current.situation}".\n` +
-    `Describe what happens after the following protagonist's action: ${prompt}.`
+    `Describe only what happens after the following protagonist's action: ${prompt}.`
   )
 
   return await session.promptStreaming(historyPrompt)
