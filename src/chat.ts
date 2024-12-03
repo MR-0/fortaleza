@@ -141,7 +141,20 @@ async function getHistoryStream(
   prompt: string,
 ) {
   const current = places.get(protagonist.place)
-  const hasInnerThoughts = Math.random() >= 0.5;
+  const madness = protagonist.madness ? protagonist.madness + 0 : 0
+  let hallucinations = ''
+  if (madness >= 90) {
+    hallucinations = 'Describes the horrifying hallucinations that haunt the protagonist.\n'
+  }
+  else if (madness >= 70) {
+    hallucinations = 'Describes the hallucinations that haunt the protagonist.\n'
+  }
+  else if (madness >= 50) {
+    hallucinations = 'Describes the protagonist\'s hallucinations.\n'
+  }
+  const innerThoughts = !hallucinations && Math.random() >= 0.5
+    ? 'Describes the inner thoughts of the protagonist.\n'
+    : ''
   const inventory = Array.isArray(protagonist.inventory)
     ? protagonist.inventory.join(', ')
     : protagonist.inventory
@@ -152,7 +165,8 @@ async function getHistoryStream(
     'You are the narrator of a old history of mistery and terror.\n' +
     'Always tells the story of the protagonist in the second person.\n' +
     // 'Describes the actions and inner thoughts of the protagonist.\n' +
-    (hasInnerThoughts ? 'Describes the inner thoughts of the protagonist.\n' : '') +
+    hallucinations +
+    innerThoughts +
     'Describes the place where the protagonist is.\n' +
     // 'Make a short description.\n'+
     `The protagonist current madness is: ${protagonist.madness} of 100.\n` +
