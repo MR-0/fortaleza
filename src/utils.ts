@@ -23,3 +23,6 @@ export function autoScroll() {
   })
 }
 
+export function unique(arr: any[]) {
+  return arr.filter((d, i) => arr.indexOf(d) === i)
+}

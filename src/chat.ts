@@ -1,6 +1,6 @@
 import { n } from './vnode'
 import { ChatInput } from './chatInput'
-import { toJson, paragraphText, autoScroll } from './utils'
+import { toJson, paragraphText, autoScroll, unique } from './utils'
 import style from './main.module.css'
 import titleSvg from '../assets/title.svg?raw'
 import flourishSvg from '../assets/flourish.svg?raw'
@@ -9,7 +9,7 @@ type Character = {
   name?: string
   motive?: string
   madness?: number
-  inventory: string
+  inventory: string[]
   place: string
   [k: string]: any
 }
@@ -39,7 +39,7 @@ const firstPlace: Place = {
 }
 const protagonist: Character = {
   madness: 0,
-  inventory: 'nothing',
+  inventory: [],
   place: firstPlace.name,
 }
 const visited = new Set()
@@ -142,6 +142,9 @@ async function getHistoryStream(
 ) {
   const current = places.get(protagonist.place)
   const hasInnerThoughts = Math.random() >= 0.5;
+  const inventory = Array.isArray(protagonist.inventory)
+    ? protagonist.inventory.join(', ')
+    : protagonist.inventory
 
   if (!current) return ''
 
@@ -153,13 +156,14 @@ async function getHistoryStream(
     'Describes the place where the protagonist is.\n' +
     // 'Make a short description.\n'+
     `The protagonist current madness is: ${protagonist.madness} of 100.\n` +
-    `The protagonist current inventory is: "${protagonist.inventory}".\n` +
+    `The protagonist current inventory is: "${inventory}".\n` +
     `The protagonist current place is: "${protagonist.place}".\n` +
     'The current place has at least one exit.\n' +
     'Always keep the response short.\n' +
     'Do not include questions in the response.\n' +
     'Do not include recomendations in the response.\n' +
     'Do not repeat the protagonist current situation.\n' +
+    'Never ask waht do you do to the protagonist.\n' +
     'Do not take the protagonist initiative.\n' +
     `The protagonist current situation is: "${current.situation}".\n` +
     `Describe only what happens after the following protagonist's action: ${prompt}.`
@@ -190,12 +194,15 @@ async function summarizeSituation(
 async function getStatus(
   session: any,
   protagonist: Character,
-  situation: string
+  situation: string,
 ) {
   const keys = Object.keys(protagonist)
+  const inventory = Array.isArray(protagonist.inventory)
+    ? protagonist.inventory.join(', ')
+    : protagonist.inventory
   const response = await session.prompt(
     `The protagonist initial madness is: "${protagonist.madness}".\n` +
-    `The protagonist initial inventory is: "${protagonist.inventory}".\n` +
+    `The protagonist initial inventory is: "${inventory}".\n` +
     `The protagonist initial place is: "${protagonist.place}".\n` +
     `After the following situation: "${situation}".\n` +
     `Updates the protagonist's madness according to the difficulty of the situation.` +
@@ -203,7 +210,17 @@ async function getStatus(
     `Updates the protagonist's place depending on what he did.` +
     `Answer in JSON format the following portagonist's aspects: ${keys.join(', ')}`
   )
-  return toJson(response)
+  const status = toJson(response)
+
+  if (status.inventory && !Array.isArray(status.inventory)) {
+    status.inventory = status.inventory.split(/,\s*/)
+    status.inventory = unique([
+      ...status.inventory,
+      ...inventory.split(/,\s*/)
+    ])
+  }
+
+  return status
 }
 
 async function createPlaceStream(
@@ -215,6 +232,7 @@ async function createPlaceStream(
     `Describe the following place: "${name}".\n` +
     `Take into consideration the previous situarion: "${previous.situation}".\n` +
     'Always describe the place of the protagonist in the second person.\n' +
+    'There are at least two exits, one from where the protagonist comes and another one.\n' +
     'Keep the response short.\n' +
     'Do not include questions in the response.\n'
   )
