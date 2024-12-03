@@ -16,7 +16,7 @@ type Character = {
 type Place = {
   name: string
   objects: string
-  situation: string
+  description: string
   previous: string[]
 }
 
@@ -31,10 +31,7 @@ const places = new Map<string, Place>()
 const firstPlace: Place = {
   name: 'dark room',
   objects: 'paper',
-  situation: (
-    'You wake up in a dark room. Slowly your eyes adjust to the dim light. ' +
-    'You hear footsteps and someone or something slide a paper under the door.'
-  ),
+  description: '',
   previous: []
 }
 const protagonist: Character = {
@@ -49,7 +46,6 @@ visited.add(firstPlace.name)
 
 export const chat = (): DocumentFragment => {
   const fragment = new DocumentFragment()
-  const current = places.get(protagonist.place)
   const paperContainer = n('div')
     .class(style.paper)
     .content(`
@@ -64,11 +60,16 @@ export const chat = (): DocumentFragment => {
   const history = paperContainer.add('section')
   const form = new ChatInput()
 
+  let situation = (
+    'You wake up in a dark room. Slowly your eyes adjust to the dim light. ' +
+    'You hear footsteps and someone or something slide a paper under the door.'
+  )
+
   history.add('h2')
     .class('hidden')
     .content('History')
   history.add('div')
-    .content(current ? paragraphText(current.situation) : '')
+    .content(paragraphText(situation))
 
   form.submit(async (prompt) => {
     const current = places.get(protagonist.place)
@@ -80,7 +81,7 @@ export const chat = (): DocumentFragment => {
 
     autoScroll()
 
-    const stream = await getHistoryStream(session, protagonist, prompt)
+    const stream = await getHistoryStream(session, protagonist, situation, prompt)
     let response = ''
 
     for await (const chunk of stream) {
@@ -89,32 +90,28 @@ export const chat = (): DocumentFragment => {
       autoScroll()
     }
 
-    if (current) {
-      current.situation = await summarizeSituation(session, protagonist, response)
-    }
+    situation = await summarizeSituation(session, situation, response)
 
     const status = await getStatus(session, protagonist, response)
 
-    if (protagonist.madness === status.madness) {
-      status.madness += visited.has(status.place) ? 1 : -5
-      status.madness = Math.max(status.madness, 0)
-    }
+    status.madness += visited.has(status.place) ? 1 : -5
+    status.madness = Math.max(status.madness, 0)
 
-    if (current && status.place !== undefined && status.place !== protagonist.place) {
+    if (!current?.description || protagonist.place !== status.place) {
       const created = places.get(status.place)
       const placeStream = created
-        ? fakeStream(created.situation)
+        ? fakeStream(created.description)
         : await createPlaceStream(session, status.place, current)
       const placeParagraph = history.add('div')
-      let placeSituation = ''
+      let placeDescription = ''
 
       for await (const chunk of placeStream) {
-        placeSituation = chunk
+        placeDescription = chunk
         placeParagraph.content(paragraphText(chunk))
         autoScroll()
       }
 
-      const objects = await getPlaceObjects(session, placeSituation)
+      const objects = await getPlaceObjects(session, placeDescription)
 
       if (created) {
         created.previous = unique([...created.previous, protagonist.place])
@@ -123,14 +120,14 @@ export const chat = (): DocumentFragment => {
         places.set(status.place, {
           name: status.place,
           previous: [protagonist.place],
-          situation: placeSituation,
+          description: placeDescription,
           objects
         })
       }
 
       visited.add(status.place)
 
-      console.log('new place -->', placeSituation)
+      console.log('new place -->', placeDescription)
     }
 
     Object.keys(protagonist).forEach((key) => {
@@ -149,6 +146,7 @@ export const chat = (): DocumentFragment => {
 async function getHistoryStream(
   session: any,
   protagonist: Character,
+  situation: string,
   prompt: string,
 ) {
   const current = places.get(protagonist.place)
@@ -175,7 +173,7 @@ async function getHistoryStream(
     // 'Describes the actions and inner thoughts of the protagonist.\n' +
     hallucinations +
     innerThoughts +
-    'Describes the place where the protagonist is.\n' +
+    (current.description ? 'Describes the place where the protagonist is.\n' : '') +
     // 'Make a short description.\n'+
     // `The protagonist current madness is: ${protagonist.madness} of 100.\n` +
     // `The protagonist current inventory is: "${inventory}".\n` +
@@ -187,7 +185,8 @@ async function getHistoryStream(
     'Do not repeat the protagonist current situation.\n' +
     'Do not repeat previous descriptions.\n' +
     'Do not take the protagonist initiative.\n' +
-    `The protagonist current situation is: "${current.situation}".\n` +
+    `The protagonist current place is: "${current.description}".\n` +
+    `The protagonist current situation is: "${situation}".\n` +
     `Describe only what happens after the following protagonist's action: ${prompt}.`
   )
 
@@ -196,16 +195,12 @@ async function getHistoryStream(
 
 async function summarizeSituation(
   session: any,
-  protagonist: Character,
-  situation: string
+  situation: string,
+  description: string
 ) {
-  const current = places.get(protagonist.place)
-
-  if (!current) return ''
-
   const summary = await session.prompt(`
     Sumarize the following text:
-    "${current.situation}\n${situation}"
+    "${situation}\n${description}"
   `)
 
   console.log('summary -->', summary)
@@ -253,7 +248,7 @@ async function createPlaceStream(
   const exits = randomPick(['two', 'three', 'four', 'five', 'six'])
   return await session.promptStreaming(
     `Describe the following place: "${name}".\n` +
-    `Take into consideration the previous situarion: "${previous.situation}".\n` +
+    `Take into consideration the previous situarion: "${previous.description}".\n` +
     'Always describe the place of the protagonist in the second person.\n' +
     `There are ${exits} ways out from this place, one is from where the protagonist comes.\n` +
     'Do not include questions in the response.\n' +
