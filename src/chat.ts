@@ -187,6 +187,7 @@ async function getHistoryStream(
     'Do not take the protagonist initiative.\n' +
     `The protagonist current place is: "${current.description}".\n` +
     `The protagonist current situation is: "${situation}".\n` +
+    `The protagonist can go back to: "${current.previous.join('", "')}".\n` +
     `Describe only what happens after the following protagonist's action: ${prompt}.`
   )
 
@@ -245,12 +246,13 @@ async function createPlaceStream(
   name: string,
   previous: Place
 ) {
-  const exits = randomPick(['two', 'three', 'four', 'five', 'six'])
+  const exits = randomPick(['two', 'two', 'two', 'three', 'three', 'three', 'four', 'four', 'five', 'six'])
   return await session.promptStreaming(
     `Describe the following place: "${name}".\n` +
     `Take into consideration the previous situarion: "${previous.description}".\n` +
     'Always describe the place of the protagonist in the second person.\n' +
-    `There are ${exits} ways out from this place, one is from where the protagonist comes.\n` +
+    `There are ${exits} ways out from this place.\n` +
+    `Identify the ways out with some characteristic.\n` +
     'Do not include questions in the response.\n' +
     'Keep the response short.'
   )
