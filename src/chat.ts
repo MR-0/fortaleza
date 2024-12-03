@@ -1,6 +1,6 @@
 import { n } from './vnode'
 import { ChatInput } from './chatInput'
-import { toJson, paragraphText, autoScroll, unique } from './utils'
+import { toJson, paragraphText, autoScroll, unique, randomPick } from './utils'
 import style from './main.module.css'
 import titleSvg from '../assets/title.svg?raw'
 import flourishSvg from '../assets/flourish.svg?raw'
@@ -228,11 +228,12 @@ async function createPlaceStream(
   name: string,
   previous: Place
 ) {
+  const exits = randomPick(['two', 'three', 'four', 'five', 'six'])
   return await session.promptStreaming(
     `Describe the following place: "${name}".\n` +
     `Take into consideration the previous situarion: "${previous.situation}".\n` +
     'Always describe the place of the protagonist in the second person.\n' +
-    'There are at least two exits, one from where the protagonist comes and another one.\n' +
+    `There are ${exits} ways out from this place, one is from where the protagonist comes.\n` +
     'Keep the response short.\n' +
     'Do not include questions in the response.\n'
   )

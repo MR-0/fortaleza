@@ -26,3 +26,8 @@ export function autoScroll() {
 export function unique(arr: any[]) {
   return arr.filter((d, i) => arr.indexOf(d) === i)
 }
+
+export function randomPick(arr: any[]) {
+  const i = Math.round((arr.length - 1) * Math.random())
+  return arr[i]
+}
